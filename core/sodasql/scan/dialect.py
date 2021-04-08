@@ -12,35 +12,34 @@ import re
 from datetime import date
 from numbers import Number
 from typing import List
-import importlib
-import logging
 
 from sodasql.exceptions.exceptions import WarehouseConnectionError, WarehouseAuthenticationError
 from sodasql.scan.column_metadata import ColumnMetadata
 from sodasql.scan.parser import Parser
-from sodasql.__version__ import SODA_SQL_VERSION
 
 KEY_WAREHOUSE_TYPE = 'type'
 KEY_CONNECTION_TIMEOUT = 'connection_timeout_sec'
 
-ATHENA = 'athena'
-BIGQUERY = 'bigquery'
-HIVE = 'hive'
 POSTGRES = 'postgres'
-REDSHIFT = 'redshift'
 SNOWFLAKE = 'snowflake'
+REDSHIFT = 'redshift'
+BIGQUERY = 'bigquery'
+ATHENA = 'athena'
 SQLSERVER = 'sqlserver'
+HIVE = 'hive'
 
-ALL_WAREHOUSE_TYPES = [ATHENA,
-                       BIGQUERY,
-                       HIVE,
-                       POSTGRES,
-                       REDSHIFT,
+ALL_WAREHOUSE_TYPES = [POSTGRES,
                        SNOWFLAKE,
-                       SQLSERVER]
+                       REDSHIFT,
+                       BIGQUERY,
+                       ATHENA,
+                       SQLSERVER,
+                       HIVE]
 
 
 class Dialect:
+
+    # TODO move these to test warehouse fixture
     data_type_varchar_255 = "VARCHAR(255)"
     data_type_integer = "INTEGER"
     data_type_bigint = "BIGINT"
@@ -49,20 +48,6 @@ class Dialect:
 
     def __init__(self, type: str):
         self.type = type
-
-    @staticmethod
-    def _import_class(module_name, class_name):
-        _class_attr = None
-        try:
-            _module = importlib.import_module(module_name)
-            _class_attr = getattr(_module, class_name)
-        except ImportError:
-            logging.error(f'Module {module_name} not found. Are you sure you installed appropriate warehouse package?')
-        except AttributeError:
-            logging.error(f'Class {class_name} not found in {module_name}, Are you sure you installed '
-                          f'appropriate warehouse package?')
-
-        return _class_attr
 
     @classmethod
     def create(cls, parser: Parser):
@@ -123,6 +108,27 @@ class Dialect:
     def is_time(self, column_type: str):
         raise RuntimeError('TODO override this method')
 
+    def sql_create_database(self, quoted_database_name: str) -> str:
+        return f'CREATE DATABASE IF NOT EXISTS {quoted_database_name}'
+
+    def sql_create_table(
+            self,
+            table_name: str,
+            column_declarations: List[str]):
+        columns_sql = ",\n  ".join(column_declarations)
+        return f"CREATE TABLE " \
+               f"{self.quote_identifier_declaration(table_name)} ( \n" \
+               f"  {columns_sql} )"
+
+    def sql_insert_into(self, table_name, rows: list):
+        rows_sql = ',\n  '.join(rows)
+        return (f'INSERT INTO '
+                f"{self.quote_identifier_declaration(table_name)} VALUES \n"
+                f"  {rows_sql}")
+
+    def sql_drop_table(self, table_name):
+        return f"DROP TABLE IF EXISTS {self.quote_identifier(table_name)}"
+
     def create_scan(self, *args, **kwargs):
         # Purpose of this method is to enable dialects to override and
         # customize the scan implementation
@@ -133,24 +139,6 @@ class Dialect:
         return (self.is_text(column_type)
                 or self.is_number(column_type)
                 or self.is_time(column_type))
-
-    def sql_create_table(
-        self,
-        table_name: str,
-        column_declarations: List[str]):
-        columns_sql = ",\n  ".join(column_declarations)
-        return f"CREATE TABLE " \
-               f"{self.qualify_writable_table_name(table_name)} ( \n" \
-               f"  {columns_sql} )"
-
-    def sql_insert_into(self, table_name, rows: list):
-        rows_sql = ',\n  '.join(rows)
-        return (f'INSERT INTO '
-                f"{self.qualify_writable_table_name(table_name)} VALUES \n"
-                f"  {rows_sql}")
-
-    def sql_drop_table(self, table_name):
-        return f"DROP TABLE IF EXISTS {self.qualify_writable_table_name(table_name)}"
 
     def sql_expr_count_all(self) -> str:
         return 'COUNT(*)'
@@ -205,7 +193,7 @@ class Dialect:
         return '(' + ','.join(sql_values) + ')'
 
     def sql_expr_cast_text_to_number(
-        self, quoted_column_name, validity_format):
+            self, quoted_column_name, validity_format):
         if validity_format == 'number_whole':
             return f"CAST({quoted_column_name} AS {self.data_type_decimal})"
         not_number_pattern = self.qualify_regex(r"[^-\d\.\,]")
@@ -233,7 +221,9 @@ class Dialect:
         return f"DATE '{date_string}'"
 
     def literal(self, o: object):
-        if isinstance(o, Number):
+        if o is None:
+            return 'NULL'
+        elif isinstance(o, Number):
             return self.literal_number(o)
         elif isinstance(o, str):
             return self.literal_string(o)
@@ -250,6 +240,12 @@ class Dialect:
 
     def qualify_writable_table_name(self, table_name: str) -> str:
         return table_name
+
+    def quote_identifier(self, name: str) -> str:
+        return f'"{name}"'
+
+    def quote_identifier_declaration(self, name: str) -> str:
+        return f'"{name}"'
 
     def qualify_regex(self, regex):
         return regex
@@ -344,7 +340,7 @@ class Dialect:
             sql = self.sql_expr_ends_with(value, substring)
         elif type == 'not':
             sql = 'NOT (' + \
-                  self.sql_expression(expression_dict['expression']) + ')'
+                self.sql_expression(expression_dict['expression']) + ')'
         elif type == 'and':
             sql = '(' + (') AND ('.join([self.sql_expression(e)
                                          for e in expression_dict['andExpressions']])) + ')'
@@ -392,7 +388,7 @@ class Dialect:
         return False
 
     def try_to_raise_soda_sql_exception(
-        self, exception: Exception) -> Exception:
+            self, exception: Exception) -> Exception:
         if self.is_connection_error(exception):
             raise WarehouseConnectionError(
                 warehouse_type=self.type,
