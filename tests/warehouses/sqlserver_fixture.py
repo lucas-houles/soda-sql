@@ -15,6 +15,7 @@ from tests.common.warehouse_fixture import WarehouseFixture
 class SQLServerFixture(WarehouseFixture):
 
     def create_database(self):
+        self.dialect.create
         pass
 
     def drop_database(self):
