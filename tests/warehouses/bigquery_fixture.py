@@ -8,6 +8,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+import logging
 
 from google.cloud import bigquery
 
@@ -28,7 +29,9 @@ class BigQueryFixture(WarehouseFixture):
         dataset = bigquery.Dataset(dataset_id)
         dataset.location = "EU"
         self.warehouse.dialect.client.create_dataset(dataset, timeout=30)
+        logging.info(f"dataset_name {self.warehouse.dialect.dataset_name}")
         self.warehouse.dialect.dataset_name = self.database
+        logging.info(f"dataset_name {self.warehouse.dialect.dataset_name}")
         self.warehouse.dialect.sql_test_connection()
 
     def drop_database(self):
