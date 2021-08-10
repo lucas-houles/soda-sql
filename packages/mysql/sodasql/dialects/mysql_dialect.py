@@ -11,7 +11,7 @@
 from datetime import date
 
 import mysql.connector
-
+from typing import Union, Optional
 from sodasql.scan.dialect import Dialect, SQLSERVER, KEY_WAREHOUSE_TYPE
 from sodasql.scan.parser import Parser
 
@@ -60,6 +60,19 @@ class MySQLDialect(Dialect):
             return conn
         except Exception as e:
             self.try_to_raise_soda_sql_exception
+
+    def __query_table(self, table_name):
+        query = f"""
+            SELECT *
+            FROM {table_name}
+            LIMIT 1
+        """
+        return query
+
+    def sql_test_connection(self, dataset_id: Optional[str] = None):
+        cursor = self.create_connection().cursor()
+        cursor.execute(f"SELECT table_name FROM information_schema.tables WHERE table_schema = '{self.database}'")
+
 
     def sql_columns_metadata_query(self, table_name: str) -> str:
         sql = (f"SELECT column_name, data_type, is_nullable \n"

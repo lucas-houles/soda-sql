@@ -14,7 +14,7 @@ from numbers import Number
 from typing import List
 import importlib
 import logging
-
+from typing import Optional
 from sodasql.exceptions.exceptions import WarehouseConnectionError, WarehouseAuthenticationError
 from sodasql.scan.column_metadata import ColumnMetadata
 from sodasql.scan.parser import Parser
@@ -110,7 +110,7 @@ class Dialect:
     def default_env_vars(self, params: dict):
         pass
 
-    def sql_test_connection(self, dataset_id):
+    def sql_test_connection(self):
         return "select 1"
 
     def sql_connection_test(self):
