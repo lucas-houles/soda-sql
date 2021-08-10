@@ -25,7 +25,8 @@ class BigQueryFixture(WarehouseFixture):
         self.database = self.create_unique_database_name()
         self.warehouse.dialect.dataset_name = self.database
         self.project_id = self.warehouse.dialect.account_info_dict['project_id']
-        dataset = bigquery.Dataset(self.warehouse.dialect.dataset_name)
+        dataset_id = f"{self.project_id}.{self.database}"
+        dataset = bigquery.Dataset(dataset_id)
         dataset.location = "EU"
         self.warehouse.dialect.client.create_dataset(dataset, timeout=30)
         logging.info(f"dataset_name {self.warehouse.dialect.dataset_name}")
