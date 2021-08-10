@@ -23,13 +23,16 @@ class BigQueryFixture(WarehouseFixture):
 
     def create_database(self):
         self.database = self.create_unique_database_name()
-        self.warehouse.dialect.database = self.database
+        self.warehouse.dialect.dataset_name = self.database
         self.project_id = self.warehouse.dialect.account_info_dict['project_id']
         dataset_id = f"{self.project_id}.{self.database}"
         dataset = bigquery.Dataset(dataset_id)
         dataset.location = "EU"
         self.warehouse.dialect.client.create_dataset(dataset, timeout=30)
-        self.warehouse.dialect.sql_test_connection(dataset_id)
+        logging.info(f"dataset_name {self.warehouse.dialect.dataset_name}")
+        self.warehouse.dialect.dataset_name = self.database
+        logging.info(f"dataset_name {self.warehouse.dialect.dataset_name}")
+        self.warehouse.dialect.sql_test_connection()
 
     def drop_database(self):
         dataset_id = f"{self.project_id}.{self.database}"
