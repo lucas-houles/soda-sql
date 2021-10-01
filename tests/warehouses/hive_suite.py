@@ -27,4 +27,4 @@ class HiveSuite(SqlTestSuite):
         columns_metadata = self.dialect.sql_columns_metadata(
             self.default_test_table_name)
 
-        assert columns_metadata == raw_metadata
+        assert columns_metadata == expected_metadata
