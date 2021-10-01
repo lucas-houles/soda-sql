@@ -18,6 +18,7 @@ class HiveFixture(WarehouseFixture):
         assert(self.warehouse.dialect.sql_test_connection())
 
     def sql_create_table(self, columns: List[str], table_name: str):
+
         columns_sql = ", ".join(columns)
         return f"CREATE TABLE " \
                f"{self.warehouse.dialect.qualify_writable_table_name(table_name)} ( \n " \
