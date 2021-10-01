@@ -87,8 +87,8 @@ class HiveDialect(Dialect):
             result = cursor.fetchall()[0][0]
             if result is not None:
                 result_json = json.loads(result)
-
-                for column in result_json['columns']:
+                columns_set = set(result_json['columns'])
+                for column in columns_set:
                     column_tuples.append(
                         (column['name'], column['type'], 'YES'))
             return column_tuples
