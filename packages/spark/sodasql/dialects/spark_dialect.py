@@ -236,7 +236,7 @@ class SparkDialect(Dialect):
         with self.create_connection().cursor() as cursor:
             cursor.execute(f"SHOW COLUMNS IN {qualified_table_name}")
             columns = cursor.fetchall()
-        return [column[0] for column in columns]
+        return list(set([column[0] for column in columns]))
 
     def describe_column(
             self, table_name: str, column_name: str) -> ColumnMetadata:
