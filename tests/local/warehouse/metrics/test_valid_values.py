@@ -16,6 +16,7 @@ from tests.common.sql_test_case import SqlTestCase
 
 class TestValidValues(SqlTestCase):
 
+    # abc
     def test_valid_values(self):
         self.sql_recreate_table(
             [f"name {self.dialect.data_type_varchar_255}",
