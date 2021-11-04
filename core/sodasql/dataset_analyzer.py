@@ -39,7 +39,9 @@ class ColumnAnalysisResult:
 class DatasetAnalyzer:
 
     def _wrap_sqlserver_column_name(self, column_name):
-        if re.search(r"\s", column_name):
+        special_characters_check = re.compile('[@_!#$%^&*()<>?/\|}{~:]')
+
+        if re.search(r"\s", column_name) or special_characters_check.search(column_name) is not None:
             return f"[{column_name}]"
         else:
             return column_name
