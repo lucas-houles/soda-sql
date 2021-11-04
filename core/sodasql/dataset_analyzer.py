@@ -39,10 +39,10 @@ class ColumnAnalysisResult:
 class DatasetAnalyzer:
 
     def _wrap_sqlserver_column_name(self, column_name):
-            if re.search(r"\s", column_name):
-                return f"[{column_name}]"
-            else:
-                return column_name
+        if re.search(r"\s", column_name):
+            return f"[{column_name}]"
+        else:
+            return column_name
 
 
     def analyze(self, warehouse: Warehouse, table_name: str):
@@ -56,7 +56,10 @@ class DatasetAnalyzer:
         column_tuples = warehouse.sql_fetchall(sql) if len(
             column_tuple_list) == 0 else column_tuple_list
         for column_tuple in column_tuples:
-            column_name = self._wrap_sqlserver_column_name(column_tuple[0])
+            if warehouse.dialect.type == "sqlserver":
+                column_name = self._wrap_sqlserver_column_name(column_tuple[0])
+            else:
+                column_name = column_tuple[0]
             source_type = column_tuple[1]
 
             column_analysis_result = ColumnAnalysisResult(
