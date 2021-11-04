@@ -10,7 +10,7 @@
 #  limitations under the License.
 from dataclasses import dataclass
 from typing import List
-
+import re
 from sodasql.scan.validity import Validity
 from sodasql.scan.warehouse import Warehouse
 from deprecated import deprecated
@@ -36,8 +36,14 @@ class ColumnAnalysisResult:
     def to_json(self):
         return self.to_dict()
 
-
 class DatasetAnalyzer:
+
+    def _wrap_sqlserver_column_name(self, column_name):
+            if re.search(r"\s", column_name):
+                return f"[{column_name}]"
+            else:
+                return column_name
+
 
     def analyze(self, warehouse: Warehouse, table_name: str):
         dialect = warehouse.dialect
@@ -50,7 +56,7 @@ class DatasetAnalyzer:
         column_tuples = warehouse.sql_fetchall(sql) if len(
             column_tuple_list) == 0 else column_tuple_list
         for column_tuple in column_tuples:
-            column_name = column_tuple[0]
+            column_name = self._wrap_sqlserver_column_name(column_tuple[0])
             source_type = column_tuple[1]
 
             column_analysis_result = ColumnAnalysisResult(
